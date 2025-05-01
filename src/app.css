@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	* {
+		font-family: 'Inter', sans-serif;
+	}
+
+	/* Chrome, Safari, Edge, Opera */
+	input::-webkit-outer-spin-button,
+	input::-webkit-inner-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
+	/* Firefox */
+	input[type='number'] {
+		-moz-appearance: textfield;
+	}
+}
+
+@layer components {
+	.primary-btn {
+		@apply bg-primary-600 py-2 px-4 text-white rounded-md font-semibold hover:bg-primary-500 transition-colors duration-150 disabled:text-neutral-400 disabled:hover:bg-neutral-200 disabled:bg-neutral-200 inline-block;
+	}
+
+	.neutral-btn {
+		@apply bg-neutral-200 py-2 px-4 rounded-md font-semibold hover:bg-neutral-300 transition-colors duration-150 disabled:text-neutral-400 disabled:hover:bg-neutral-200 disabled:bg-neutral-200 inline-block;
+	}
+
+	.bare-btn {
+		@apply py-2 px-4 rounded-md font-semibold hover:bg-neutral-100 transition-colors duration-150 disabled:text-neutral-400 disabled:hover:bg-neutral-200 disabled:bg-neutral-200 inline-block;
+	}
+
+	.shadow-card {
+		box-shadow:
+			rgba(50, 50, 93, 0.25) 0px 2px 5px -1px,
+			rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+	}
+
+	.shadow-soft {
+		box-shadow: rgba(0, 0, 0, 0.04) 0px 3px 5px;
+	}
+}
+
+@layer utilities {
+	.scroll_hidden::-webkit-scrollbar {
+		width: 10px;
+		border-radius: 0.5rem;
+		display: none;
+	}
+}
+
+::-webkit-scrollbar {
+	width: 10px;
+	height: 5px;
+	border-radius: 0.5rem;
+}
+
+::-webkit-scrollbar-track {
+	background: #f4f4f4;
+	border-radius: 0.5rem;
+}
+
+::-webkit-scrollbar-thumb {
+	background: rgb(229, 229, 229);
+	border-radius: 5px;
+}
+
+html {
+	margin: 0;
+	height: 100%;
+	overflow: hidden;
+}
+
+body {
+	position: relative;
+}
