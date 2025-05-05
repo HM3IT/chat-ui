@@ -4,6 +4,7 @@
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
+		"move-static": "cp -a ./node_modules/@pdftron/webviewer/public/. ./static/webviewer",
 		"build": "npm run move-static && vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
