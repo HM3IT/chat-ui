@@ -3,13 +3,11 @@ import { writable, get } from 'svelte/store';
 
 function createStore() {
 	const { set, subscribe } = writable<User>({
-		firstName: '',
-		lastName: '',
+		username: '',
 		email: '',
 		role: null,
 		token: '',
 		id: '',
-		component: null
 	});
 
 	return {

@@ -1,45 +1,78 @@
 <script lang="ts">
-	import type { Chunk, RenderGroup } from '$lib/types/chat.ts';
-
+	import type { Message, ChatGroup } from '$lib/types/chat.ts';
+	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { createQuery } from '@tanstack/svelte-query';
-	import { queryChat, getChats } from '$lib/api/chat';
+	import { createQuery, useQueryClient, createMutation } from '@tanstack/svelte-query';
+	import { streamChat, getChatMessages, generateChatTitle, getChatDetail } from '$lib/api/chat';
 	import { formatRoleName, formatMesgBlock } from '$lib/utils';
 	import { authFormStateStore } from '$lib/store/authFormStateStore';
-
-	import SvelteMarkdown from 'svelte-markdown';
+	import { userStore } from '$lib/store/userStore';
 	import MDLinkRenderer from '$lib/components/renderer/MDLinkRenderer.svelte';
+	import SvelteMarkdown from 'svelte-markdown';
 	import ToolBlock from '$lib/components/renderer/ToolBlock.svelte';
 	import TextBubble from '$lib/components/renderer/TextBubble.svelte';
 	import AuthForm from '$lib/components/form/AuthForm.svelte';
 	import ThreeDots from '$lib/components/icons/ThreeDots.svelte';
 	import Icon from '@iconify/svelte';
 
+	const client = useQueryClient();
+
 	let chatContainer: HTMLDivElement;
 	let inputBox: HTMLTextAreaElement;
+
 	let userInputText = '';
-	let sessionId = '';
 	let isThinking = false;
 	let isLoading = true;
-	let chunks: Chunk[] = [];
-	let renderedGroups: RenderGroup[] = [];
-	$: chunks = [];
+	let messages: Message[] = [];
+	let chatGroups: ChatGroup[] = [];
+	let titleGenerated: boolean = false;
+	$: messages = [];
+	$: sessionId = $page.params.id;
 
-	$: chatsQuery = createQuery({
-		queryKey: ['chats-detail', sessionId],
-		queryFn: () => getChats(sessionId),
-		enabled: sessionId !== '',
+	$: chatQuery = createQuery({
+		queryKey: ['chats', sessionId],
+		queryFn: () => getChatDetail($userStore.id, sessionId),
 		refetchOnWindowFocus: false,
 		refetchOnReconnect: false,
 		refetchInterval: 0
 	});
 
-	async function updateRenderedGroups() {
-		renderedGroups = await formatMesgBlock(chunks);
+	$: chatMessages = createQuery({
+		queryKey: ['chats-detail', sessionId],
+		queryFn: () => getChatMessages($userStore.id, sessionId),
+		refetchOnWindowFocus: false,
+		refetchOnReconnect: false,
+		refetchInterval: 0
+	});
+
+	const generateChatTitleMutation = createMutation({
+		mutationFn: ({ sessionId, userId }: { sessionId: string; userId: string }) =>
+			generateChatTitle(sessionId, userId),
+		onSuccess: () => {
+			client.invalidateQueries({
+				queryKey: ['chats']
+			});
+		},
+		onError: () => {
+			titleGenerated = false;
+		}
+	});
+
+	async function updateChatGroups() {
+		chatGroups = await formatMesgBlock(messages);
+
+		if (!titleGenerated && chatGroups.length > 2) {
+			titleGenerated = true;
+			$generateChatTitleMutation.mutate({ sessionId: sessionId, userId: $userStore.id });
+		}
 	}
-	$: if ($chatsQuery.isSuccess && $chatsQuery.data) {
-		chunks = $chatsQuery.data;
-		updateRenderedGroups();
+
+	$: if ($chatQuery && $chatQuery.isSuccess && $chatQuery.data && $chatQuery.data.title) {
+		titleGenerated = $chatQuery.data.title.toLowerCase() !== 'new chat';
+	}
+	$: if ($chatMessages.isSuccess && $chatMessages.data) {
+		messages = $chatMessages.data;
+		updateChatGroups();
 	}
 
 	async function send(text: string | null = null) {
@@ -48,15 +81,15 @@
 		}
 
 		if (!text) return;
-		chunks = [...chunks, { role: 'user', type: 'text', message: text }];
+		messages = [...messages, { role: 'user', type: 'text', message: text }];
 		isLoading = false;
-		await updateRenderedGroups();
+		await updateChatGroups();
 
 		userInputText = '';
 		scrollToBottom();
 		isThinking = true;
 
-		const stream = await queryChat(sessionId, text);
+		const stream = await streamChat($userStore.id, sessionId, text);
 		const reader = stream.body!.getReader();
 		const decoder = new TextDecoder();
 		let buffer = '';
@@ -71,13 +104,18 @@
 
 			for (const part of parts) {
 				if (!part.trim()) continue;
-				const chunk = JSON.parse(part) as Chunk;
-				chunks = [...chunks, chunk];
-				await updateRenderedGroups();
+				const newMessage = JSON.parse(part) as Message;
+				messages = [...messages, newMessage];
+				await updateChatGroups();
 			}
 			scrollToBottom();
 		}
 		isThinking = false;
+		if (messages.length <= 2) {
+			client.invalidateQueries({
+				queryKey: ['chats']
+			});
+		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -105,12 +143,6 @@
 	}
 
 	onMount(async () => {
-		if (crypto?.randomUUID) {
-			if (sessionId === '') {
-				sessionId = crypto.randomUUID();
-			}
-			console.log('generted new uuid ', sessionId);
-		}
 		scrollToBottom();
 	});
 </script>
@@ -119,7 +151,7 @@
 	bind:this={chatContainer}
 	class="flex flex-col w-full h-[90vh] overflow-y-auto pt-10 space-y-8 bg-white"
 >
-	{#each renderedGroups as group, gi}
+	{#each chatGroups as group, gi}
 		<article class="w-full flex justify-center">
 			<div
 				class="w-[768px] flex flex-col"
@@ -154,7 +186,7 @@
 					{#each group.blocks as block}
 						{#if block.type === 'tool_block'}
 							<ToolBlock toolName={block.toolName} result={block.result} />
-						{:else if !isLoading && gi === renderedGroups.length - 1 && group.role !== 'user'}
+						{:else if !isLoading && gi === chatGroups.length - 1 && group.role !== 'user'}
 							<TextBubble fullText={block.content} />
 						{:else}
 							<SvelteMarkdown
@@ -170,7 +202,7 @@
 		</article>
 	{:else}
 		<div class="grid place-items-center h-full text-gray-600">
-			let's start chatting with the HM3 Agent
+			Send a message to start chatting with the FOIA Agent
 		</div>
 	{/each}
 
@@ -206,7 +238,7 @@
 			on:keydown={handleKeydown}
 			on:paste={handlePaste}
 			style="resize: none;"
-			data-placeholder="Type your message..."
+			placeholder="Type your message..."
 			class="flex-1 p-2 focus:outline-none placeholder-gray-400
          		min-h-[48px] max-h-40 overflow-y-auto"
 		></textarea>

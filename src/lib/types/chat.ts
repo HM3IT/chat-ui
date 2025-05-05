@@ -1,12 +1,7 @@
-export interface Chunk {
+export interface Message {
 	type: MessageType;
 	role: string;
 	message: string;
-}
-
-export interface ChatMessage {
-	role: string;
-	messages: Chunk[];
 }
 
 export interface ToolBlockData {
@@ -18,11 +13,17 @@ export interface TextData {
 	type: 'text';
 	content: string;
 }
-export type RenderBlock = ToolBlockData | TextData;
+export type MessageBlock = ToolBlockData | TextData;
 
-export interface RenderGroup {
+export interface ChatGroup {
 	role: string;
-	blocks: RenderBlock[];
+	blocks: MessageBlock[];
 }
 
 export type MessageType = 'text' | 'tool_result' | 'tool_call';
+
+export type Chat = {
+	chat_id: string;
+	title: string;
+	messages: Message[];
+};

@@ -1,7 +1,7 @@
+import type { userRole, User } from '$lib/types/user';
+
 import axios from 'axios';
 import { env } from '$env/dynamic/public';
-import type { Analyst, Requester, userRole } from '$lib/types/user';
-import type { RequesterType } from '$lib/types/request';
 import axiosInstance from './axiosInstance';
 
 export const login = async (email: string, password: string, type: userRole) => {
@@ -12,20 +12,9 @@ export const login = async (email: string, password: string, type: userRole) => 
 				access_token: string;
 				refresh_token: string;
 				roles: userRole[];
-				first_name: string;
-				last_name: string;
+				username: string;
 				email: string;
 				id: string;
-				organization: string;
-				phone_number: string;
-				fax_number: string;
-				street_address: string;
-				street_address_2: string;
-				state: string;
-				zip_code: string;
-				country: string;
-				city: string;
-				type: RequesterType;
 			};
 		}
 	>(`${env.PUBLIC_API_URL}/v1/auth/tokens`, {
@@ -48,5 +37,5 @@ export const requesterSignup = async (data: any) => {
 };
 
 export const getUser = async () => {
-	return await axiosInstance.get<Requester | Analyst>('/v1/users/me');
+	return await axiosInstance.get<User>('/v1/users/me');
 };

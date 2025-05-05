@@ -1,5 +1,6 @@
-import type { Chunk, RenderBlock, RenderGroup } from '$lib/types/chat.ts';
+import type { Message, MessageBlock, ChatGroup } from '$lib/types/chat.ts';
 
+import { invalidate } from '$app/navigation'; 
 
 function getUTCDate(date: string) {
 	const localDate = new Date(date);
@@ -33,8 +34,8 @@ export function formatDate(date: string) {
 }
 
 
-export const formatMesgBlock = async (chunks: Chunk[]): Promise<RenderGroup[]> => {
-	const groups: { role: string; messages: Chunk[] }[] = []; 
+export const formatMesgBlock = async (chunks: Message[]): Promise<ChatGroup[]> => {
+	const groups: { role: string; messages: Message[] }[] = []; 
 	for (const chunk of chunks) {
 		const last = groups[groups.length - 1];
 		if (last && last.role === chunk.role) {
@@ -52,8 +53,8 @@ export const formatMesgBlock = async (chunks: Chunk[]): Promise<RenderGroup[]> =
 	);
 };
 
-const buildRenderBlocks = (chunks: Chunk[]): Promise<RenderBlock[]> => {
-	const blocks: RenderBlock[] = [];
+const buildRenderBlocks = (chunks: Message[]): Promise<MessageBlock[]> => {
+	const blocks: MessageBlock[] = [];
 	 
 	for (let i = 0; i < chunks.length; i++) {
 		const c = chunks[i];
@@ -87,4 +88,14 @@ export function formatRoleName(role: string, exceptions: string | string[] = ["h
 			return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
 		})
 		.join(' ');
+}
+
+
+
+export function logout() {
+	localStorage.removeItem('accessToken');
+	localStorage.removeItem('refreshToken');
+	invalidate('app:auth').then(() => {
+		location.reload();
+	});
 }

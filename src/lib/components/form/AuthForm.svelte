@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { authenticate } from '$lib/api/chat';
+	import { authenticateChat } from '$lib/api/chat';
 	import Spinner from '$lib/components/icons/Spinner.svelte';
 	export let authUrl: string;
 
@@ -17,7 +17,7 @@
 		message = '';
 		try {
 			status = 'loading';
-			const response = await authenticate(authUrl, email, password);
+			const response = await authenticateChat(authUrl, email, password);
 			if (response.status === 201) {
 				status = 'success';
 				message = 'Authentication successful!';
